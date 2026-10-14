@@ -2,6 +2,8 @@
 
 Model và animation cho kẻ canh gác đầu tiên trong GDD *Hồ Không Cho Câu*.
 
+> Muốn thêm model cùng loại: xem [PRODUCTION.md](PRODUCTION.md) (khung sản xuất).
+
 ![preview](preview.png)
 
 ## Thiết kế
@@ -53,6 +55,33 @@ Mỗi khớp là một `Motor6D`, tên khớp trùng với tên part con. Các p
 | `Stunned` | không | Khựng lại khi trúng đòn của pet |
 | `Search` | có | Cúi tìm ở vị trí mất dấu cuối cùng |
 | `Threaten` | không | Đứng ở ranh giới nơi an toàn, chĩa dùi cui gõ dọa rồi lắc còng tay |
+
+## Âm thanh
+
+Thư mục [Sounds/](Sounds/) có 12 file `.wav` (một file cho mỗi animation) do `Sounds/build_sounds.py` tự tổng hợp bằng code, dùng lại hàm tổng hợp của `TreasureChest/Sounds`. Script client `GooseSounds` phát âm thanh theo attribute `Anim`:
+
+| Animation | Âm thanh | Cách phát |
+| --- | --- | --- |
+| `Idle` | Hai tiếng "quác" nhỏ | Lặp mỗi 6 giây |
+| `Walk`, `Run` | Tiếng chân vịt chạm đất | Lặp mỗi 0,5 giây (đi) và 0,22 giây (chạy) |
+| `Fly` | Tiếng vỗ cánh | Lặp mỗi 0,5 giây |
+| `Attack` | Quác gắt rồi tiếng mổ "cộp" | Lặp mỗi 0,7 giây, tiếng mổ khớp lúc 0,42 giây |
+| `Sleep` | Tiếng ngáy | Lặp mỗi 3 giây |
+| `Search` | Tiếng khịt mũi đánh hơi | Lặp mỗi 2,4 giây |
+| `Faint` | Quác chao đảo, tiếng ngã "phịch", chân giật nhẹ | Một lần |
+| `Alert` | Tiếng quác giật mình | Một lần |
+| `Whistle` | Hai hồi còi | Một lần, khớp hai lần ngẩng đầu |
+| `Stunned` | Tiếng "bốp", quác méo tiếng và chuông quay cuồng | Một lần |
+| `Threaten` | Gầm gừ, hai tiếng gõ dùi cui, lắc còng tay leng keng | Một lần |
+
+Âm thanh theo [SOUND_GUIDE.md](../SOUND_GUIDE.md): peak file 0,5, `volume` tối đa 0,8, tông còi không rít, không trầm dưới 100 Hz.
+
+Roblox không cho nhúng âm thanh vào model, nên phải upload:
+
+1. Upload từng file lên Creator Hub (Audio) bằng tài khoản của anh. Nếu không nhận `.wav` thì đổi sang `.mp3` hoặc `.ogg`.
+2. Điền `rbxassetid://<id>` vào bảng `SOUNDS` ở đầu `GooseSounds.client.luau`, sửa `volume` hoặc `period` nếu muốn. Có thể sửa trong Studio rồi chép lại vào file, hoặc sửa file rồi chạy lại `python build_police_goose.py`.
+
+Id để trống thì animation đó im lặng, nên model vẫn chạy bình thường khi chưa upload. Sau khi đổi `Anim`, âm thanh của animation cũ dừng phát lần kế tiếp ngay (tiếng đang phát dở sẽ tự kết thúc).
 
 ## Cài vào Roblox Studio
 
@@ -107,5 +136,5 @@ File GLB chỉ dùng để xem. Muốn đưa vào Roblox thì dùng `PoliceGoose
 
 - `Fly` chỉ nâng thân và vỗ cánh. Ngỗng không tự bay lên: `Humanoid` vẫn giữ nó trên mặt đất. Nếu cần bay thật, phải tự di chuyển `HumanoidRootPart` (ví dụ bằng `AlignPosition`).
 - Chỉ part `Body` có `CanCollide`. Đầu, cổ và chân xuyên qua vật cản để animation mổ hay ngất không bị vật lý đẩy lệch.
-- Âm thanh như còi hay tiếng kêu "quác" chưa có. Có thể phát `Sound` từ server cùng lúc đổi `Anim`.
-- File được sinh bằng script và đã kiểm tra hình dáng, tư thế bằng ảnh render offline (`preview.png`), nhưng **chưa mở thử trong Roblox Studio**.
+- File `.wav` chỉ được kiểm tra về độ dài, biên độ (không bị vỡ tiếng) và độ lệch DC, **chưa nghe thử**. Âm tổng hợp bằng code chỉ ở mức hiệu ứng đơn giản, nếu cần chất lượng cao hơn thì thay bằng âm thanh thu sẵn rồi điền id vào `GooseSounds`.
+- File được sinh bằng script và đã kiểm tra hình dáng, tư thế bằng ảnh render offline (`preview.png`), nhưng **chưa mở thử trong Roblox Studio**, kể cả script âm thanh.

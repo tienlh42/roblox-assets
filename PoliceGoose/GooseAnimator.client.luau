@@ -73,7 +73,7 @@ local fadeFrom = {}
 
 local function play(name)
 	current = animations[name]
-	assert(current, "PoliceGoose: unknown animation " .. tostring(name))
+	assert(current, goose.Name .. ": unknown animation " .. tostring(name))
 	for jointName, motor in motors do
 		fadeFrom[jointName] = motor.Transform
 	end

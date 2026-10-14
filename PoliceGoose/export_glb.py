@@ -270,26 +270,33 @@ class GlbWriter:
         path.write_bytes(data)
 
 
-def main():
+def export(data, model_name, out):
+    """data needs PARTS, JOINTS and ANIMATIONS in the same format as build_police_goose."""
     glb = GlbWriter()
-    parts = {p[0]: p for p in goose.PARTS}
-    joints = {j[0]: j for j in goose.JOINTS}
+    parts = {p[0]: p for p in data.PARTS}
+    joints = {j[0]: j for j in data.JOINTS}
     children = {}
-    for part1, part0, _ in goose.JOINTS:
+    for part1, part0, _ in data.JOINTS:
         children.setdefault(part0, []).append(part1)
     decor = {}
-    for name, *_, bone in goose.PARTS:
+    for name, *_, bone in data.PARTS:
         if bone:
             decor.setdefault(bone, []).append(name)
 
     # Roblox faces -Z, glTF convention is +Z forward.
-    root = glb.add_node("PoliceGoose", cf(ry=180))
+    root = glb.add_node(model_name, cf(ry=180))
     joint_nodes = {}
     c0s = {}
 
     def part_mesh(name):
         _, shape, size, _, color, _ = parts[name]
         return glb.add_mesh(name, [glb.primitive(build_shape(shape, size), glb.material(color))])
+
+    def add_decor(name, rest, parent_node):
+        """Parts welded to name, and parts welded to those (a hub with a ring of blocks, for example)."""
+        for child in decor.get(name, []):
+            node = glb.add_node(child, rest.inverse() * parts[child][3], mesh=part_mesh(child), parent=parent_node)
+            add_decor(child, parts[child][3], node)
 
     def add_bone(name, parent_node):
         _, _, _, rest, _, _ = parts[name]
@@ -302,14 +309,13 @@ def main():
             joint_nodes[name] = glb.add_node(name + "Joint", c0, parent=parent_node)
             c1 = rest.inverse() * CF(pivot)
             bone_node = glb.add_node(name, c1.inverse(), mesh=part_mesh(name), parent=joint_nodes[name])
-        for child in decor.get(name, []):
-            glb.add_node(child, rest.inverse() * parts[child][3], mesh=part_mesh(child), parent=bone_node)
+        add_decor(name, rest, bone_node)
         for child in children.get(name, []):
             add_bone(child, bone_node)
 
     add_bone("HumanoidRootPart", root)
 
-    for anim_name, (looped, _, easing, keyframes) in goose.ANIMATIONS.items():
+    for anim_name, (looped, _, easing, keyframes) in data.ANIMATIONS.items():
         length = keyframes[-1][0]
         times = [min(i / FPS, length) for i in range(math.ceil(length * FPS) + 1)]
         time_accessor = glb.accessor(times, "SCALAR", minmax=True)
@@ -329,10 +335,9 @@ def main():
                 channels.append({"sampler": len(samplers) - 1, "target": {"node": node, "path": path}})
         glb.gltf["animations"].append({"name": anim_name, "samplers": samplers, "channels": channels})
 
-    out = HERE / "PoliceGoose.glb"
     glb.write(out)
     print(f"Wrote {out} ({len(glb.gltf['animations'])} animations, {len(glb.bin) // 1024} KB binary)")
 
 
 if __name__ == "__main__":
-    main()
+    export(goose, "PoliceGoose", HERE / "PoliceGoose.glb")

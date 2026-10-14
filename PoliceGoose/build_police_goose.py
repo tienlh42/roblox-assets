@@ -408,7 +408,7 @@ class Item:
                 f"<Properties>{props}</Properties>\n{children}{pad}</Item>\n")
 
 
-def build_part(name, shape, size, rest, color):
+def build_part(name, shape, size, rest, color, anchored=False):
     material = "Metal" if color == SILVER else "SmoothPlastic"
     props = [
         xml_string("Name", name),
@@ -416,7 +416,7 @@ def build_part(name, shape, size, rest, color):
         xml_vector3("size", size),
         xml_color3uint8(color),
         f'<token name="Material">{MATERIAL[material]}</token>',
-        '<bool name="Anchored">false</bool>',
+        f'<bool name="Anchored">{"true" if anchored else "false"}</bool>',
         f'<bool name="CanCollide">{"true" if name == "Body" else "false"}</bool>',
         '<token name="TopSurface">0</token>',
         '<token name="BottomSurface">0</token>',
@@ -447,14 +447,14 @@ def build_joint(class_name, name, part0, part1, pivot):
     ])
 
 
-def build_keyframe_sequence(name, looped, priority, easing, keyframes):
+def build_keyframe_sequence(name, looped, priority, easing, keyframes, joints=JOINTS):
     sequence = Item("KeyframeSequence", [
         xml_string("Name", name),
         f'<bool name="Loop">{"true" if looped else "false"}</bool>',
         f'<token name="Priority">{PRIORITY[priority]}</token>',
     ])
     children = {}
-    for part1, part0, _ in JOINTS:
+    for part1, part0, _ in joints:
         children.setdefault(part0, []).append(part1)
 
     def build_pose(pose_name, transforms):
@@ -510,12 +510,13 @@ def build_model():
     for name, (looped, priority, easing, keyframes) in ANIMATIONS.items():
         folder.add(build_keyframe_sequence(name, looped, priority, easing, keyframes))
 
-    source = (HERE / "GooseAnimator.client.luau").read_text(encoding="utf-8")
-    model.add(Item("Script", [
-        xml_string("Name", "GooseAnimator"),
-        f'<token name="RunContext">{RUN_CONTEXT_CLIENT}</token>',
-        f'<ProtectedString name="Source"><![CDATA[{source}]]></ProtectedString>',
-    ]))
+    for script_name in ("GooseAnimator", "GooseSounds"):
+        source = (HERE / f"{script_name}.client.luau").read_text(encoding="utf-8")
+        model.add(Item("Script", [
+            xml_string("Name", script_name),
+            f'<token name="RunContext">{RUN_CONTEXT_CLIENT}</token>',
+            f'<ProtectedString name="Source"><![CDATA[{source}]]></ProtectedString>',
+        ]))
     return model
 
 
