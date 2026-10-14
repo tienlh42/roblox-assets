@@ -1,0 +1,52 @@
+<!doctype html>
+<html>
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width">
+<title>GLB preview</title>
+<!-- Contact sheet of GLB models at chosen animation times, for checking a model before it goes to Roblox Studio.
+     Serve the repo root (python -m http.server 8000) and open, for example:
+     http://localhost:8000/tools/preview.html?items=Egg/Egg_Starter.glb:Hatch:2.4,Egg/Egg_Starter.glb:Hatch:3.1
+     Parameters: items = file:animation:seconds, comma separated (file relative to the repo root);
+     orbit, target, fov = the model-viewer camera (target is in glTF coordinates, see tools/README.md);
+     w, h = size of each panel in pixels; cols = panels per row. window.ready resolves when every model is posed. -->
+<script type="module" src="https://unpkg.com/@google/model-viewer@3.5.0/dist/model-viewer.min.js"></script>
+<style>
+  body { margin: 0; background: #dfe9f5; }
+  #g { display: grid; gap: 4px; }
+  model-viewer { background: #cfe0f3; }
+</style>
+</head>
+<body>
+<div id="g"></div>
+<script>
+const q = new URLSearchParams(location.search);
+const items = (q.get('items') || '').split(',').filter(Boolean).map(s => s.split(':'));
+const w = Number(q.get('w') || 300), h = Number(q.get('h') || w);
+const grid = document.getElementById('g');
+grid.style.gridTemplateColumns = `repeat(${q.get('cols') || items.length}, ${w}px)`;
+
+window.ready = Promise.all(items.map(([file, anim, time]) => new Promise(resolve => {
+  const viewer = document.createElement('model-viewer');
+  viewer.src = '/' + file;
+  viewer.style.width = w + 'px';
+  viewer.style.height = h + 'px';
+  viewer.setAttribute('camera-orbit', q.get('orbit') || '-25deg 78deg 16m');
+  viewer.setAttribute('camera-target', q.get('target') || '0m 2m 0m');
+  viewer.setAttribute('field-of-view', q.get('fov') || '30deg');
+  viewer.setAttribute('shadow-intensity', '0');
+  viewer.setAttribute('exposure', '1.1');
+  if (anim) viewer.animationName = anim;
+  grid.appendChild(viewer);
+  viewer.addEventListener('load', () => {
+    viewer.play();
+    setTimeout(() => {
+      viewer.pause();
+      viewer.currentTime = Number(time || 0);
+      setTimeout(resolve, 500);
+    }, 200);
+  });
+})));
+</script>
+</body>
+</html>
